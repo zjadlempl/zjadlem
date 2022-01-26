@@ -30,22 +30,47 @@
                             </h2>
                             <span v-show="this.wybraneDanie != '' " id="ocenaDania"> </span>
                             <div v-show="this.wybraneDanie != '' " id="kat" style="color: brown"> {{ this.$store.state.restWybranaPotrawaKategoria }}: </div>
-                            <span v-show="this.wybraneDanie != '' " id="skladniki">{{ this.$store.state.restWybranaPotrawaNazwa }} &nbsp;</span>
+                            <span v-show="this.wybraneDanie != '' " id="nazwaPot" style="font-weight:600">Nazwa: <span style="font-weight:400">{{ this.$store.state.restWybranaPotrawaNazwa }} &nbsp;</span></span>
+                            <div v-show="this.wybraneDanie != '' "><span style="font-weight:600">Składniki: &nbsp;</span><span id="skladniki">{{ this.$store.state.restWybranaPotrawaSkladniki }} &nbsp;</span></div>
                             <div v-show="this.wybraneDanie != '' ">Ocena społeczności: &nbsp;<star-rating :read-only="true" :inline="true" :star-size="16" :increment="0.01" :fixed-points="2"  :rating=this.$store.state.avgOcena inactive-color="#bbbbbb" /></div>
-                            <span v-show="this.wybraneDanie != '' " v-if="$auth.isAuthenticated">Twoja ocena: &nbsp;<star-rating :inline="true" :star-size="16" :increment="0.5" :fixed-points="2" :rating=this.$store.state.restWybranaPotrawaOcena[0].Ocena @rating-selected="setRating" inactive-color="#bbbbbb" active-color="#ffa800" /></span>
+                            <span v-show="this.wybraneDanie != '' " v-if="$auth.isAuthenticated">Twoja ocena: &nbsp;<star-rating :inline="true" :star-size="16" :increment="0.5" :fixed-points="2" :rating=parseInt(this.$store.state.restWybranaPotrawaOcena[0].Ocena) @rating-selected="setRating" inactive-color="#bbbbbb" active-color="#ffa800" /></span>
                             <div v-show="this.wybraneDanie != '' " style="margin-top:2%;" v-if="$auth.isAuthenticated">
                                 <b-form-textarea
                                     id="textarea"
                                     v-model="text"
-                                    state="text.length > 10"
                                     placeholder="Może chcesz coś o tym daniu napisać?"
                                     rows="3"
                                     max-rows="6"
                                 ></b-form-textarea>
                             </div>
                             <div v-show="this.wybraneDanie != '' ">
-                                <b-button style="margin:2%" variant="success" v-if="$auth.isAuthenticated" @click="ocenienie">Oceń</b-button>
-                                <label style="color:brown" v-else><a id="logText" @click="login" style="text-decoration:underline;">Zaloguj się</a> aby podzielić się własną opinią!</label>
+                                <div v-if="$auth.isAuthenticated">
+                                    <b-form-checkbox
+                                    id="checkbox-1"
+                                    v-model="czyAnonim"
+                                    name="checkbox-1"
+                                    value="1"
+                                    unchecked-value="0"
+                                    style="margin:5px"
+                                    >
+                                    &nbsp; Anonimowa opinia
+                                    </b-form-checkbox>
+                                </div>
+                                <label v-show="ocena==9" v-if="$auth.isAuthenticated" style="color:darkred;">Musisz wybrać ocenę żeby móc kontynuować</label>
+                                <div style="display:flex; justify-content:center">
+                                <b-button style="margin:2%" :disabled="ocena==9" variant="success" v-if="$auth.isAuthenticated" @click="ocenienie">Oceń</b-button>
+                                 <label style="color:brown" v-else><a id="logText" @click="login" style="text-decoration:underline;">Zaloguj się</a> aby podzielić się własną opinią!</label>
+                                <b-button 
+                                v-if="
+                                $auth.isAuthenticated
+                                &&
+                                this.$store.state.restWybranaPotrawaOcena[0] != false
+                                &&
+                                this.$store.state.restWybranaPotrawaOcena[0].Autor == this.$store.state.currentUserEmail
+
+                                " 
+                                style="margin:2%"  variant="danger" @click="usunOpinie">Usuń opinie</b-button>
+                                </div>
                                 <b-alert 
                                     style="padding:2%; margin-top:2%;"
                                     :show="dismissCountDown"
@@ -53,47 +78,69 @@
                                     variant="success"
                                     @dismiss-count-down="countDownChanged"
                                 >
-                                    Dodano pomyślnie!
+                                    Wykonano pomyślnie!
                                 </b-alert>
                             </div>
-                            <div id="kom" v-show="this.wybraneDanie != '' "
+                            <div id="kom"  v-show="this.wybraneDanie != '' "
                                 v-if="
                                 this.$store.state.restWybranaPotrawaOcena[0].Komentarz != 'brak' 
                                 &&
-                                this.$store.state.restWybranaPotrawaOcena.length > 0 != null "
+                                this.$store.state.restWybranaPotrawaOcena.length > 0 != null 
+                                "
+                                style="margin-bottom:5px; margin-top:5px; border-radius:10px; padding-bottom:5%;"
                                 >
-                                    Twój komentarz:
-                                    <div id="insKom" style="background:#ededed; padding:0%; margin:1%; border: 3px solid #eeeeee">
-                                         
-                                        <div style="padding:1%; background:#aaccff; font-weight:600; justify-content:space-between; display:flex"><div style="text-align: left;"> {{ this.$store.state.restWybranaPotrawaOcena[0].Autor }}  </div> <div>{{ this.$store.state.restWybranaPotrawaOcena[0].Data }}</div></div>
-                                        <div><div style="text-align: center; font-style:italic; padding:2%">{{ this.$store.state.restWybranaPotrawaOcena[0].Komentarz }}   </div></div>
+                                    <div style="font-weight: 600; border-radius:10px; text-align: center; padding:1%;">
+                                        <div style="text-transform:uppercase">Twój komentarz:</div>
+                                    </div>                                 
+                                    <div id="insKom" style="border-top:1px solid black;border-bottom:1px solid black">                                    
+                                        <div id="komTekst" style="padding:1%;font-weight:600;justify-content:space-around;display:flex; border-bottom:1px inset">
+                                            <div style="text-align: left; width:50%;"> {{ this.$store.state.restWybranaPotrawaOcena[0].Autor }} <span v-if="this.$store.state.restWybranaPotrawaOcena[0].Anonim == 1">(Anonimowa)</span> </div> <div style="width:30%">Data: {{ this.$store.state.restWybranaPotrawaOcena[0].Data }}</div><div style="width:19%; text-align:right">Ocena: {{ this.$store.state.restWybranaPotrawaOcena[0].Ocena }}</div></div>
+                                        <div id="tresc" style="border-radius:10px; border-color:transparent;">
+                                            <div style="text-align: left; font-style:italic; padding:2%" v-if="this.$store.state.restWybranaPotrawaOcena[0].Komentarz">{{ this.$store.state.restWybranaPotrawaOcena[0].Komentarz }}   </div>
+                                            <div style="text-align:left; color:red; padding: 2%;" v-else><i>Brak komentarza.</i></div>
+                                        </div>
                                     </div>
                             </div>
                             <div id="kom" v-show="this.wybraneDanie != '' "
                                 v-if="
+                                this.$store.state.restWybranaPotrawaOcenaSpolecznosci[0].Komentarz != 'qqqqqqqqq'
+                                &&
                                 this.$store.state.restWybranaPotrawaOcenaSpolecznosci[0].Autor != 'brak'
-                                &&
-                                this.$store.state.restWybranaPotrawaOcenaSpolecznosci[0].Komentarz != ''
-                                &&
-                                this.$store.state.restWybranaPotrawaOcenaSpolecznosci[0].Komentarz != null
                                 "
+                                style="margin-bottom:5px; margin-top:5px; padding-bottom:5%;"
                                 >
-                                    Komentarze społeczności:
-                                    <div id="insKom" v-for="(danieSuperKom, index) in this.$store.state.restWybranaPotrawaOcenaSpolecznosci.slice(komLimMin,komLimMax)"  :key="index" style="background:#ededed; padding:0%; margin:1%;">
+                                   <div id="nagg" style="font-weight: 600; text-align: center; padding:1%; border-bottom:1px solid black; text-transform:uppercase">
+                                       <span>Komentarze społeczności: </span>
+                                       <span style="font-family:arial">({{this.$store.state.restWybranaPotrawaOcenaSpolecznosci.length}}) </span> 
+                                   </div> 
+                                    <div id="insKom" v-for="(danieSuperKom, index) in this.$store.state.restWybranaPotrawaOcenaSpolecznosci.slice(komLimMin,komLimMax)"  :key="index" style="background:#ededed; padding:0%; margin:1%; ">
                                         <div v-if="danieSuperKom.Komentarz != '' && danieSuperKom.Komentarz != null ">
-                                            <div style="padding:1%; background:#aaccff; font-weight:600; justify-content:space-between; display:flex">
-                                                <div style="text-align: left;">{{ danieSuperKom.Autor }}</div> 
-                                                <div>{{danieSuperKom.Data}}</div>
+                                            <div id="komTekst" style="padding:1%; font-weight:600; justify-content:space-around; display:flex; border-bottom:1px inset">
+                                                <div style="text-align: left; width:50%;" v-if="danieSuperKom.Anonim == 0 || danieSuperKom.Anonim == null">{{ danieSuperKom.Autor }}</div>
+                                                <div style="text-align: left; width:50%;" v-else>Anonim</div> 
+                                                <div style="width:30%;">Data: {{danieSuperKom.Data}}</div>
+                                                <div style="width:20%; text-align:right">Ocena: {{danieSuperKom.Ocena}}</div>
                                             </div>
-                                            <div>
-                                                <div style="text-align: center; font-style:italic; padding:2%">{{ danieSuperKom.Komentarz }}</div>
+                                            <div id="tresc">
+                                                <div style="text-align: left; font-style:italic; padding:2%">{{ danieSuperKom.Komentarz }}</div>
+                                            </div>
+                                        </div>
+                                        <div v-else>
+                                            <div id="komTekst" style="padding:1%; font-weight:600; justify-content:space-around;  display:flex">
+                                                <div style="text-align: left; width:50%;" v-if="danieSuperKom.Anonim == 0 || danieSuperKom.Anonim == null">{{ danieSuperKom.Autor }}</div>
+                                                <div style="text-align: left; width:50%;" v-else>Anonim</div> 
+                                                <div style="width:30%;">Data: {{danieSuperKom.Data}}</div>
+                                                <div style="width:20%; text-align:right">Ocena: {{danieSuperKom.Ocena}}</div>
+                                            </div>
+                                            <div id="tresc">
+                                                <div style="text-align:left; color:red; padding: 2%;"><i>Brak komentarza.</i></div>
                                             </div>
                                         </div>
                                     </div>
-                                    <b-button-group style="padding:1%; text-align:center">
-                                        <b-button variant="primary" id="wiecej" v-if="komLimMax < this.$store.state.restWybranaPotrawaOcenaSpolecznosci.length" @click="komLimMax+=5">Wyświetl więcej</b-button>
-                                        <b-button id="mniej" v-if="komLimMax > 7" @click="komLimMax-=5">Wyświetl mniej</b-button>
-                                    </b-button-group>
+                                <b-button-group style="padding-top:1%; text-align:center !important; display:block">
+                                    <b-button id="wiecej" v-if="komLimMax < this.$store.state.restWybranaPotrawaOcenaSpolecznosci.length" @click="komLimMax+=5">Wyświetl więcej</b-button>
+                                    <b-button id="mniej" v-if="komLimMax > 7" @click="komLimMax-=5">Wyświetl mniej</b-button>
+                                </b-button-group>
                             </div>
                             <div v-else style="font-weight:600">Brak komentarzy społeczności! Bądź pierwszy!</div>
                             </div>
@@ -119,7 +166,7 @@ export default {
   components: {StarRating, Naglowek},
   data() {
     return {
-        ocena:4,
+        ocena:9,
         ocenaSpolecznosci: [],
         wybraneDanie: '',
         twojaOcena: 0,
@@ -129,6 +176,8 @@ export default {
         avg: '',
         komLimMax:  2,
         komLimMin: 0,
+        czyAnonim: 0,
+        usuniete: 0,
     };
   },
   created (){
@@ -155,20 +204,31 @@ export default {
       this.$store.state.restWybranaPotrawaId = danie.id;
       this.$store.state.restWybranaPotrawaKategoria = danie.Kategoria;
       this.$store.state.restWybranaPotrawaNazwa = danie.Nazwa;
-      //this.$store.state.currentUserEmail = this.$auth.user.email;
+      if(danie.Skladniki != null){
+          this.$store.state.restWybranaPotrawaSkladniki = danie.Skladniki;
+      }
+      else{
+          this.$store.state.restWybranaPotrawaSkladniki = "Brak danych od restauracji";
+      }
+      
+      this.ocena=9;
       this.$store.dispatch('bindOcena')
-      ////this.ocenaSpolecznosci = this.$store.state.restWybranaPotrawaOcenaSpolecznosci
-      ////console.log(this.$store.state.avgOcena)
     },
     ocenienie(){
+        this.$store.state.czyAnonim = this.czyAnonim;
         this.$store.state.danieKomentarz = this.text;
-        //this.$store.commit('addOcenaDania')
-        //this.$store.dispatch('bindOcena')
         this.$store.dispatch('bindOcenaAdd')
         this.$store.dispatch('bindOcena')
         this.dismissCountDown = this.dismissSecs
         //zeby wyswietlalo ocene spolecznosci na zywo mozna dodac COMPUTED ktory obserwuje zmienna, rating to bedzie zmienna, a zmienna bedzie aktualizowana w tej funkcji
         //funkcja ocenienie wysyla ocene, aktualizuje ze stanu wartosc srednia, a nastepnie computed obserwujacy ta zmienna aktualizuje ja
+    },
+    usunOpinie(){
+        console.log("usuwam opinie")
+        this.usuniete == 1;
+        this.$store.dispatch('bindOcenaRem')
+        this.$store.dispatch('bindOcena')
+        this.dismissCountDown = this.dismissSecs
     },
     countDownChanged(dismissCountDown) {
         this.$store.dispatch('bindOcena')
@@ -233,6 +293,7 @@ export default {
     padding:2%;
     width:50%;
     overflow-y:hidden !important;
+    //overflow-y:auto !important;
     //max-height:60vh;
     //
 }
@@ -302,12 +363,38 @@ h1{
   padding-bottom:3vh;
   text-shadow: 0 4px 8px rgba(0,0,0,0.19);
 }
-#kom{}
+#kom{
+  border: 1px solid black;
+  border-radius: 10px;
+}
 #kom #insKom{
     padding:0;
-    margin: 0;
+    margin: 0 !important;
     background:white !important;
-    text-shadow: 0 4px 8px rgba(0,0,0,0.19);
-    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+}
+#kom #insKom #komTekst{
+  background:rgb(255, 255, 255);
+}
+#kom #insKom #tresc{
+  background:rgb(255, 255, 255);
+  border-bottom:1px solid black
+}
+#wiecej{
+  color:black;
+  text-transform: uppercase;
+  border:none;
+  font-size:0.7rem;
+  font-weight: 300;
+  border:1px solid rgba(0, 0, 0, 0.178);
+  background:rgb(243, 243, 243);
+}
+#mniej{
+  color:black;
+  text-transform: uppercase;
+  border:none;
+  font-size:0.7rem;
+  font-weight: 300;
+  border:1px solid rgba(0, 0, 0, 0.178);
+  background:rgb(243, 243, 243);
 }
 </style>
