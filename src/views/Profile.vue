@@ -1,7 +1,7 @@
 <template>
   <div id="profile">
     <div class="background" id="backgroundFirst">
-        <b-img-lazy fluid class="backgroundImage" :src="images.image2"/>
+        <b-img-lazy fluid class="backgroundImage" :src="images.image2" alt="background" />
     </div>
 
     <div id="tlo">
@@ -9,12 +9,14 @@
         <h1>Twój profil Smakosza</h1>
         <div id="infoProf">
           <div id="avatarDiv">
-            <img class="avatar" :src="$auth.user.picture" />
+            <img class="avatar" :src="$auth.user.picture" alt="avatar" />
           </div>
           <div id="infoDiv">
             <!--<p>Liczba ocen: {{this.$store.state.listaOcen.length}}</p> -->
-            <p>Email: {{ $auth.user.email }}</p>
-            <p>Nick: {{ $auth.user.nickname }}</p>
+            <p id="poleMojEmail">Email: {{ $auth.user.email }}</p>
+            <p id="poleMojNick">Nick: {{ $auth.user.nickname }}</p>
+            <p style="color:green; font-weight:700" id="czyMod" v-if="this.$store.state.currentUser_Role.includes('Moderator') ">Moderator</p>
+            
           </div>
           
         </div>
@@ -56,7 +58,13 @@
                 sort-icon-right
                 :items="this.$store.state.listaZnaj"
                 responsive="sm"
-              ></b-table>
+              >
+              <template #cell(emailZnajomego)="data">
+                <!-- `data.value` is the value after formatted by the Formatter -->
+                <span @click="odwiedzZnajomego(data.value)" style="cursor:pointer; color:blue">{{ data.value }}</span>
+              </template>
+              
+              </b-table>
             </div>
           </b-tab>
           <b-tab title="Dodaj znajomego">
@@ -69,7 +77,7 @@
               <div class="panel">
                 <div class="kolumna">
                   <div> Twój kod znajomego:
-                      <span v-show="pokaz==true"><strong>{{ kodUs }}</strong></span> 
+                      <span id="twoj_kod_znajomego" v-show="pokaz==true"><strong>{{ kodUs }}</strong></span> 
                       <b-button style="margin-left:2%;" :pressed.sync="pokaz" @click="wyswietlKod" size="sm" pill variant="outline-secondary">Pokaż/ukryj</b-button>
                   </div>
                   <div>
@@ -78,7 +86,7 @@
                         <p>Zmień swój kod:</p>
                         <b-form-input
                             style="width:40%; margin:2%"
-                            id="textarea"
+                            id="textarea_nowyKod"
                             :state="validation"
                             v-model="kodNowy"
                             placeholder="Wpisz nowy kod"
@@ -90,7 +98,7 @@
                         </b-form-input>
                       </div>
                       <b-form-valid-feedback :state="validation">
-                        <b-button style="margin:1%" pill variant="success" size="sm" v-if="$auth.isAuthenticated" @click="zmienKod">Zmień</b-button>
+                        <b-button style="margin:1%" pill variant="success" size="sm" v-if="$auth.isAuthenticated" @click="zmienKod" id="button_zmienKod">Zmień</b-button>
                         <label style="color:brown" v-else><a id="logText" @click="login" style="text-decoration:underline;">Zaloguj się</a> </label>
                       </b-form-valid-feedback>
                       <b-form-invalid-feedback :state="validation">
@@ -103,7 +111,7 @@
                   <div style="margin:2%;" v-if="$auth.isAuthenticated">
                       <b-form-input
                           style="margin:3%"
-                          id="textarea"
+                          id="textarea_mailKumpla"
                           v-model="mailKumpla"
                           placeholder="Wpisz mail znajomego"
                           rows="1"
@@ -112,7 +120,7 @@
                       ></b-form-input>
                       <b-form-input
                           style="margin:3%"
-                          id="textarea"
+                          id="textarea_kodKumpla"
                           size="sm"
                           v-model="kodKumpla"
                           placeholder="Wpisz kod znajomego"
@@ -120,20 +128,20 @@
                           max-rows="1"
                       ></b-form-input>
                   </div>
-                  <div style="margin:auto; margin-bottom:2%;">
+                  <div id="przycisk_dodajZnajomego" style="margin:auto; margin-bottom:2%;">
                       <b-button style="margin:0" pill variant="outline-secondary" size="sm" v-if="$auth.isAuthenticated" @click="dodajKumpla">Dodaj znajomego</b-button>
                       <label style="color:brown" v-else><a id="logText" @click="login" style="text-decoration:underline;">Zaloguj się</a> </label>
                   </div>
-                  <span v-if="this.$store.state.statusDodania == '2'">
+                  <span id="dodanie_processing" v-if="this.$store.state.statusDodania == '2'">
                       <b-icon icon="arrow-clockwise" animation="spin" font-scale="2"></b-icon>
                   </span>
-                  <span v-if="this.$store.state.statusDodania == '1'">
+                  <span id="dodanie_success" v-if="this.$store.state.statusDodania == '1'">
                       <b-iconstack font-scale="2">
                         <b-icon stacked icon="square"></b-icon>
                         <b-icon stacked icon="check"></b-icon>
                       </b-iconstack>
                   </span>
-                  <span v-if="this.$store.state.statusDodania == '0'">
+                  <span id="dodanie_error" v-if="this.$store.state.statusDodania == '0'">
                       <b-iconstack font-scale="2">
                         <b-icon stacked icon="square"></b-icon>
                         <b-icon stacked icon="x"></b-icon>
@@ -149,17 +157,26 @@
 </template>
 
 <script>
-import image1 from "../assets/background1.jpeg"
-import image2 from "../assets/background2.jpeg"
-import image3 from "../assets/background3.jpeg"
-import image4 from "../assets/background4.jpeg"
+import image1 from "../assets/background1.webp"
+import image2 from "../assets/background2.webp"
+import image3 from "../assets/background3.webp"
+import image4 from "../assets/background4.webp"
 export default {
+  
   name: "Profile",
   metaInfo: {
     title: "Zjadłem.pl | Profil",
+    htmlAttrs: {
+      lang: 'pl-PL'
+    },
+    meta: [
+      { charset: 'utf-8' },
+      { name: 'description', content: 'Strona pozwalajaca ocenic jedzenie w restauracjach - Zjadlempl.' },
+    ]
   },
   components: { },
   created() {
+    if(this.$auth.isAuthenticated){
     if(this.$auth.user.email != null){
       this.$store.state.currentUserEmail = this.$auth.user.email;
     }
@@ -168,6 +185,7 @@ export default {
     }
     this.$store.dispatch("bindUserOceny");
     this.$store.state.statusDodania = '3'
+    }
   },
   data() {
     return {
@@ -220,6 +238,10 @@ export default {
       this.$store.dispatch("bindUserOceny");
       this.pokaz=false;
     },
+    zobaczInfo(){
+      //console.log(this.$auth.user);
+      //console.log(this.$auth.user["https://zjadlem.pl/role"].includes('Moderator'))
+    },
     wyswietlKod() {
       if(this.$store.state.kodUsera != null && this.$store.state.kodUsera != ''){
         if(this.$store.state.kodUsera.kodZnajomego != null && this.$store.state.kodUsera.kodZnajomego != ''){
@@ -238,6 +260,11 @@ export default {
       this.$store.state.emailZnajomego = this.mailKumpla;
       this.$store.dispatch('dodajKumpla');
     },
+    odwiedzZnajomego(email){
+      this.$store.state.wybranyZnajomy = email;
+      this.$router.push("/profile_friend");
+      console.log(this.$store.state.wybranyZnajomy)
+    }
   },
   computed: {
     validation() {

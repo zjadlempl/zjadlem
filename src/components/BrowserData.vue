@@ -336,6 +336,7 @@ export default {
     },
     changeCurrentRestaurant(Restaurant) {
       this.ocena=9;
+      window.scrollTo(0,0);
       this.currentRestauracja = Restaurant;
       this.$store.state.restNazwa= Restaurant.Nazwa;
       this.$store.state.restAdres= Restaurant.Adres;
@@ -357,11 +358,13 @@ export default {
   },
   created (){
     this.$store.dispatch('bindRestauracja')
+    if(this.$auth.isAuthenticated){
     if(this.$auth.user.email != null){
       this.$store.state.currentUserEmail = this.$auth.user.email;
     }
     else{
       this.$store.state.currentUserEmail = null;
+    }
     }
   },
   computed: {
