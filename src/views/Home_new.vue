@@ -2,9 +2,13 @@
   <div class="home_new">
     <div class="background" id="backgroundFirst" >
       <b-img-lazy fluid class="backgroundImage" :src="images.image3" alt="background" />
+
     </div>
-    <div class="background" id="backgroundSecond">
-     
+    
+    <div class="background" id="backgroundSecond" style="">
+     <div style="z-index:100">
+      <Maklowicz name="maklowicz"></Maklowicz>
+    </div>
     </div>
     <div class="background" id="backgroundFirst">
       <b-img-lazy fluid class="backgroundImage" :src="images.image2" alt="background" />
@@ -26,7 +30,9 @@ import image1 from "../assets/background1.webp"
 import image2 from "../assets/background2.webp"
 import image3 from "../assets/background3.webp"
 import image4 from "../assets/background4.webp"
+import Maklowicz from "../components/Maklowicz.vue"
 export default {
+  components: { Maklowicz},
   name: 'Home_new',
   metaInfo:{
     title: 'Zjadłem.pl | Podziel się swoją opinią!',
@@ -63,12 +69,20 @@ export default {
 
 <style lang="scss" scoped>
 .background:first-of-type{
-  margin-top:-7%;
+ // margin-top:-7%;
 }
 .background {
   height:40vh;
   width:100vw;
   background:white;
+  display:flex;
+  flex-direction:column;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+}
+.background div{
+  //width:100%;
 }
 .background:nth-child(odd){
   height:60vh;
@@ -101,7 +115,7 @@ h1{
   margin-top:7vh;
   padding:0;
   padding-bottom:3vh;
-  text-shadow: 0 4px 8px rgba(0,0,0,0.19);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.521);
 }
 @keyframes fadeinA {
     0% { opacity: 0; }
@@ -120,6 +134,13 @@ h1{
     padding: 20px;
     width: 100%;
     height: 40vh;
+  }
+}
+@media screen and (max-width: 900px) {
+  #backgroundSecond{
+    display:flex;
+   // flex-direction: column;
+   justify-content:flex-start;
   }
 }
 @media screen and (max-width: 600px) {
